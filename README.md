@@ -4,13 +4,6 @@
 
 ## Chạy ngay bằng Docker
 
-Máy bàn giao đã có `.env` và `backend/.env` với secret ngẫu nhiên, không đưa vào Git hoặc gói mã nguồn. Từ PowerShell:
-
-```powershell
-cd D:\nam4\Ki_1\ICloud\project\cloudtask
-docker compose up -d --build
-```
-
 Mở http://localhost:3000, chọn **Đăng ký** để tạo tài khoản của bạn. API tại http://localhost:5000/api/v1. Kiểm tra sẵn sàng tại http://localhost:5000/health. Dữ liệu PostgreSQL lưu trong volume `cloudtask_pgdata`, tồn tại khi container dừng.
 
 Khi chuyển mã nguồn sang máy khác, mở Docker Desktop trước, dùng Node 22 LTS hoặc mới hơn phù hợp dependency, rồi:
