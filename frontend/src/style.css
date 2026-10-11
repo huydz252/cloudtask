@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+@layer base {
+  body {
+    @apply m-0 font-sans antialiased;
+  }
+  button,
+  input,
+  textarea,
+  select {
+    @apply outline-none;
+  }
+  button:focus-visible,
+  a:focus-visible {
+    @apply ring-2 ring-brand ring-offset-2;
+  }
+  input,
+  textarea,
+  select {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal text-ink transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-indigo-100;
+  }
+  textarea {
+    @apply resize-y;
+  }
+  button:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+}
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50;
+  }
+  .field-label {
+    @apply flex flex-col gap-2 text-xs font-semibold text-slate-600;
+  }
+  .icon-button {
+    @apply rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-ink;
+  }
+  .nav-item {
+    @apply flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-500 transition hover:bg-slate-50;
+  }
+  .nav-item.active {
+    @apply bg-indigo-50 text-brand;
+  }
+  .view-button {
+    @apply flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-slate-400;
+  }
+  .view-button.selected {
+    @apply bg-indigo-50 text-brand;
+  }
+  .priority {
+    @apply inline-flex whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-semibold;
+  }
+  .priority-low {
+    @apply bg-slate-100 text-slate-500;
+  }
+  .priority-medium {
+    @apply bg-blue-50 text-blue-600;
+  }
+  .priority-high {
+    @apply bg-amber-50 text-amber-700;
+  }
+  .priority-urgent {
+    @apply bg-rose-50 text-rose-600;
+  }
+}

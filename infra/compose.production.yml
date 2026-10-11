@@ -1,0 +1,7 @@
+# Use with the main compose file on a host behind an HTTPS reverse proxy.
+services:
+  backend:
+    environment:
+      NODE_ENV: production
+      CORS_ORIGIN: ${CORS_ORIGIN:?Set the exact HTTPS origin}
+      TRUST_PROXY: 2

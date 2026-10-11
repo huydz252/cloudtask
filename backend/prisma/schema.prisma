@@ -1,0 +1,118 @@
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+enum Role {
+  ADMIN
+  MEMBER
+}
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  passwordHash String @map("password_hash")
+  fullName String @map("full_name")
+  avatarUrl String? @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  memberships ProjectMember[]
+  assignedTasks Task[] @relation("AssignedTasks")
+  createdTasks Task[] @relation("CreatedTasks")
+  comments TaskComment[]
+  refreshTokens RefreshToken[]
+  @@map("users")
+}
+model Project {
+  id String @id @default(uuid())
+  title String
+  description String?
+  key String @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  members ProjectMember[]
+  tasks Task[]
+  @@map("projects")
+}
+model ProjectMember {
+  id String @id @default(uuid())
+  role Role @default(MEMBER)
+  joinedAt DateTime @default(now()) @map("joined_at")
+  userId String @map("user_id")
+  projectId String @map("project_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([userId, projectId])
+  @@map("project_members")
+}
+model Task {
+  id String @id @default(uuid())
+  title String
+  description String? @db.Text
+  status TaskStatus @default(TODO)
+  priority Priority @default(MEDIUM)
+  dueDate DateTime? @map("due_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  projectId String @map("project_id")
+  creatorId String @map("creator_id")
+  assigneeId String? @map("assignee_id")
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User @relation("CreatedTasks", fields: [creatorId], references: [id])
+  assignee User? @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  comments TaskComment[]
+  attachments Attachment[]
+  @@index([projectId, status])
+  @@index([assigneeId])
+  @@map("tasks")
+}
+model TaskComment {
+  id String @id @default(uuid())
+  content String @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  taskId String @map("task_id")
+  userId String @map("user_id")
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+  @@index([taskId, createdAt])
+  @@map("task_comments")
+}
+model Attachment {
+  id String @id @default(uuid())
+  fileName String @map("file_name")
+  fileUrl String @map("file_url")
+  fileSize Int @map("file_size")
+  mimeType String @map("mime_type")
+  objectKey String @unique @map("object_key")
+  uploaderId String @map("uploader_id")
+  confirmedAt DateTime? @map("confirmed_at")
+  uploadExpiresAt DateTime @map("upload_expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  taskId String @map("task_id")
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  @@index([taskId])
+  @@map("attachments")
+}
+model RefreshToken {
+  id String @id @default(uuid())
+  tokenHash String @unique @map("token_hash")
+  userId String @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("refresh_tokens")
+}

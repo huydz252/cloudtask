@@ -1,0 +1,17 @@
+[
+  {
+    "AllowedHeaders": [
+      "content-type",
+      "x-amz-meta-attachment-id",
+      "x-amz-checksum-*",
+      "x-amz-sdk-checksum-algorithm"
+    ],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "https://cloudtask.example.com"
+    ],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 300
+  }
+]
