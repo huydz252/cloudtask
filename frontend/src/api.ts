@@ -4,9 +4,10 @@ let accessToken: string | null = null;
 export const setToken = (token: string | null) => {
   accessToken = token;
 };
-export const api = axios.create({ baseURL: "/api/v1", withCredentials: true });
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
+export const api = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 export const sessionApi = axios.create({
-  baseURL: "/api/v1",
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 api.interceptors.request.use((config) => {
