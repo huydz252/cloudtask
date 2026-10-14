@@ -145,3 +145,5 @@ router.get(
   validate(attachmentParams, "params"),
   wrap(attachments.download),
 );
+
+console.log("=== Auto Deploy Test Successful ===");
