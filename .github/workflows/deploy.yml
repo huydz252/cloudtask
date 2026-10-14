@@ -1,0 +1,27 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches: [ qhuy ] # Hoặc nhánh bạn dùng để deploy (master/main)
+    paths:
+      - 'backend/**' # Chỉ tự động deploy khi có thay đổi code trong thư mục backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/cloudtask/backend
+            git pull origin qhuy
+            npm install
+            npx prisma generate
+            npx prisma migrate deploy
+            npm run build      # Nếu dùng TypeScript
+            pm2 restart cloudtask-api
