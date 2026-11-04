@@ -2,6 +2,8 @@
 
 Base URL `/api/v1`. JSON request, Bearer access token cho các endpoint bảo vệ. Success trả resource hoặc mảng trực tiếp; lỗi `{ "success": false, "message": "...", "errors": {...} }`. Validation 400, session 401, trái quyền 403, không tìm thấy/không có membership 404, trùng dữ liệu 409, rate limit 429, S3 chưa cấu hình 503.
 
+Xóa dự án: `DELETE /projects/:id`, Bearer token của ADMIN dự án và JSON body `{ "confirmationKey": "DEMO" }` với mã dự án chính xác, phân biệt hoa thường. Trả 204 khi thành công; sai mã/thiếu xác nhận trả 400, MEMBER trả 403, người ngoài trả 404. Database cascade xóa task, comment, membership và attachment metadata; object S3 giữ lại. Không cần migration mới. Sau khi triển khai cần cập nhật cả backend và frontend.
+
 | Method | Path                                            | Body hoặc query                                                      | Kết quả                                                  |
 | ------ | ----------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------- |
 | GET    | `/health` hoặc `/api/v1/health`                 | Không                                                          | status, uptime, dbConnected; 200/503                     |

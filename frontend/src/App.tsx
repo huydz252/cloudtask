@@ -189,7 +189,12 @@ export default function App() {
             </div>
           )}
           {projectId ? (
-            <Board key={projectId} projectId={projectId} user={user} />
+            <Board
+              key={projectId}
+              projectId={projectId}
+              user={user}
+              onDeleted={() => setProjectId(null)}
+            />
           ) : (
             <>
               <div className="mb-8 flex flex-wrap items-end justify-between gap-4">

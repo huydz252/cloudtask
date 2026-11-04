@@ -67,6 +67,12 @@ router.post(
   validate(memberSchema),
   wrap(projects.addMember),
 );
+router.delete(
+  "/projects/:id",
+  validate(idParams("id"), "params"),
+  validate(z.object({ confirmationKey: z.string().min(2).max(10) }).strict()),
+  wrap(projects.deleteProject),
+);
 router.get(
   "/projects/:projectId/tasks",
   validate(idParams("projectId"), "params"),

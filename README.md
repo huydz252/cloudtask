@@ -100,7 +100,9 @@ docker-compose.yml     PostgreSQL + API + frontend
 - Prisma 6.19 được cố định để bám sát schema `prisma-client-js` trong đặc tả; dependency phụ bị cảnh báo đã được override lên bản vá và kiểm tra tương thích bằng migration/build/test. `package-lock.json` được lưu để cài đặt lặp lại.
 - Compose mặc định dùng `NODE_ENV=development` để refresh cookie hoạt động trên HTTP localhost; image vẫn chỉ cài production dependencies. Deploy HTTPS phải dùng production override để cookie Secure và kiểm tra secret.
 - Access JWT mặc định 15 phút thay cho ví dụ 7 ngày của tài liệu, refresh session 7 ngày. Logout thu hồi refresh token; access token đã phát hành còn hiệu lực đến hết TTL. Muốn thu hồi tức thời cần thêm denylist/session validation.
-- Không có sửa/xóa dự án, xóa thành viên, reset password hay thông báo email vì không nằm trong yêu cầu gốc.
+- Xóa dự án: ADMIN mở dự án → Xóa dự án → nhập đúng mã dự án → xác nhận. Công việc, bình luận, thành viên và metadata tệp bị xóa theo dự án; object S3 được giữ lại. Không cần migration mới vì các quan hệ đã có cascade.
+- Kanban hiển thị tối đa 3 thẻ mỗi cột, cuộn riêng để xem thêm; tiêu đề/mô tả dài được rút gọn trên thẻ và xem đầy đủ trong chi tiết. Chế độ danh sách cũng cuộn sau 3 dòng, giữ cố định tiêu đề bảng.
+- Không có sửa dự án, xóa thành viên, reset password hay thông báo email.
 - Chưa có pagination; GET task/comment trả dữ liệu của dự án/task. Với dự án rất lớn cần bổ sung phân trang/cursor và giới hạn số bản ghi.
 - Chưa cung cấp tài nguyên AWS thực tế hay domain/HTTPS: cần account, region, VPC, bucket và domain của chủ dự án. Các file triển khai chuẩn bị sẵn, không tạo chi phí cloud trong quá trình xây dựng.
 - Tệp S3 còn lại sau xóa task và yêu cầu upload hết hạn cần quy trình dọn dẹp được chủ dự án chấp thuận. Không cấu hình tự động xóa dữ liệu.

@@ -12,6 +12,7 @@ import {
   Plus,
   Search,
   Users,
+  Trash2,
 } from "lucide-react";
 import { api, errorMessage } from "../api";
 import {
@@ -28,9 +29,11 @@ import TaskDrawer from "./TaskDrawer";
 export default function Board({
   projectId,
   user,
+  onDeleted,
 }: {
   projectId: string;
   user: User;
+  onDeleted: () => void;
 }) {
   const [view, setView] = useState<"board" | "list">("board"),
     [search, setSearch] = useState(""),
@@ -42,6 +45,8 @@ export default function Board({
     [moveError, setMoveError] = useState("");
   const [dragOver, setDragOver] = useState<Status | null>(null);
   const [createStatus, setCreateStatus] = useState<Status>("TODO");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const closeDelete = useCallback(() => setDeleteOpen(false), []);
   const client = useQueryClient();
   const project = useQuery({
     queryKey: ["project", projectId],
@@ -102,7 +107,15 @@ export default function Board({
               "Theo dõi công việc và cùng nhóm hoàn thành mục tiêu."}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          {p.role === "ADMIN" && (
+            <button
+              className="btn-secondary !text-red-600"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 size={17} /> Xóa dự án
+            </button>
+          )}
           <button className="btn-secondary" onClick={() => setMembers(true)}>
             <Users size={17} />
             <span className="hidden sm:inline">Thành viên</span>{" "}
@@ -251,7 +264,12 @@ export default function Board({
                     <Plus size={17} />
                   </button>
                 </div>
-                <div className="space-y-3">
+                <div
+                  className="kanban-task-scroll"
+                  role="region"
+                  aria-label={`Công việc ${statuses[status]}`}
+                  tabIndex={column.length > 3 ? 0 : undefined}
+                >
                   {column.map((t) => (
                     <TaskCard
                       key={t.id}
@@ -272,9 +290,14 @@ export default function Board({
           })}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div
+          className="task-table-scroll rounded-xl border border-slate-200 bg-white"
+          role="region"
+          aria-label="Danh sách công việc"
+          tabIndex={filtered.length > 3 ? 0 : undefined}
+        >
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
+            <thead className="sticky top-0 z-10 h-12 border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
               <tr>
                 {[
                   "Công việc",
@@ -285,7 +308,7 @@ export default function Board({
                 ].map((h) => (
                   <th
                     key={h}
-                    className="whitespace-nowrap px-5 py-4 font-medium"
+                    className="whitespace-nowrap px-5 py-3 font-medium"
                   >
                     {h}
                   </th>
@@ -296,11 +319,11 @@ export default function Board({
               {filtered.map((t) => (
                 <tr
                   key={t.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-indigo-50/40"
+                  className="h-20 border-b border-slate-100 last:border-0 hover:bg-indigo-50/40"
                 >
                   <td className="max-w-md px-5 py-4">
                     <button
-                      className="text-left font-medium hover:text-brand"
+                      className="line-clamp-2 break-words text-left font-medium hover:text-brand"
                       onClick={() => setTaskId(t.id)}
                     >
                       {t.title}
@@ -342,6 +365,13 @@ export default function Board({
         />
       )}
       {members && <Members project={p} onClose={closeMembers} />}
+      {deleteOpen && (
+        <DeleteProject
+          project={p}
+          onClose={closeDelete}
+          onDeleted={onDeleted}
+        />
+      )}
     </>
   );
 }
@@ -365,20 +395,22 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={onClick}
-      className="w-full cursor-grab rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md active:cursor-grabbing"
+      className="flex h-full min-w-0 w-full cursor-grab flex-col rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md active:cursor-grabbing"
     >
-      <PriorityBadge priority={task.priority} />
+      <span className="self-start">
+        <PriorityBadge priority={task.priority} />
+      </span>
       <h3
-        className={`mb-2 mt-3 text-sm font-semibold leading-6 ${task.status === "DONE" ? "text-slate-500" : "text-ink"}`}
+        className={`mb-2 mt-3 line-clamp-2 break-words text-sm font-semibold leading-6 ${task.status === "DONE" ? "text-slate-500" : "text-ink"}`}
       >
         {task.title}
       </h3>
       {task.description && (
-        <p className="mb-4 line-clamp-2 text-xs leading-5 text-slate-400">
+        <p className="mb-3 line-clamp-2 break-words text-xs leading-5 text-slate-400">
           {task.description}
         </p>
       )}
-      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+      <div className="mt-auto flex w-full shrink-0 items-center justify-between border-t border-slate-100 pt-3">
         <div className="flex items-center gap-3 text-[11px] text-slate-400">
           {task.dueDate && (
             <span
@@ -411,6 +443,78 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
         )}
       </div>
     </button>
+  );
+}
+function DeleteProject({
+  project,
+  onClose,
+  onDeleted,
+}: {
+  project: Project;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [confirmation, setConfirmation] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const client = useQueryClient();
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (confirmation !== project.key || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.delete(`/projects/${project.id}`, {
+        data: { confirmationKey: confirmation },
+      });
+      onDeleted();
+      client.removeQueries({ queryKey: ["project", project.id] });
+      client.removeQueries({ queryKey: ["tasks", project.id] });
+      await client.invalidateQueries({ queryKey: ["projects"] });
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
+  }
+  return (
+    <Modal title="Xóa dự án" onClose={busy ? () => {} : onClose}>
+      <form onSubmit={submit} className="space-y-5">
+        <p className="text-sm leading-6 text-slate-600">
+          Bạn sắp xóa dự án <strong>{project.title}</strong>. Toàn bộ công việc,
+          bình luận, danh sách thành viên và thông tin tệp đính kèm trong dự án
+          sẽ bị xóa vĩnh viễn. Không thể hoàn tác. Tệp gốc trên S3 được giữ lại.
+        </p>
+        <label className="field-label">
+          Nhập mã {project.key} để xác nhận
+          <input
+            value={confirmation}
+            onChange={(e) => setConfirmation(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            disabled={busy}
+            required
+            aria-label="Mã xác nhận xóa dự án"
+          />
+        </label>
+        {error && <ErrorBox message={error} />}
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            disabled={busy}
+            className="btn-secondary"
+            onClick={onClose}
+          >
+            Giữ lại dự án
+          </button>
+          <button
+            disabled={busy || confirmation !== project.key}
+            className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+          >
+            {busy ? "Đang xóa…" : "Xác nhận xóa dự án"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 function Members({

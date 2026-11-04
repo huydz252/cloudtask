@@ -2,7 +2,7 @@ name: cloudtask
 services:
   postgres:
     image: postgres:15-alpine
-    restart: unless-stopped
+    restart: "no"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -20,7 +20,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    restart: unless-stopped
+    restart: "no"
     environment:
       NODE_ENV: development
       PORT: 5000
@@ -42,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    restart: unless-stopped
+    restart: "no"
     ports:
       - "127.0.0.1:3000:8080"
     depends_on:

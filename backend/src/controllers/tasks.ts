@@ -15,6 +15,7 @@ const include = {
 } as const;
 export const listTasks: RequestHandler = async (req, res) => {
   await requireMember(req.params.projectId, req.userId);
+  
   const { search, ...filters } = req.query as {
     search?: string;
     status?: Prisma.TaskWhereInput["status"];

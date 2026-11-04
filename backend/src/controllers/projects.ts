@@ -63,3 +63,18 @@ export const addMember: RequestHandler = async (req, res) => {
   });
   res.status(201).json(member);
 };
+
+export const deleteProject: RequestHandler = async (req, res) => {
+  await requireMember(req.params.id, req.userId, true);
+  const project = await db.project.findUniqueOrThrow({
+    where: { id: req.params.id },
+    select: { key: true },
+  });
+  if (req.body.confirmationKey !== project.key) {
+    throw new AppError(400, "Mã xác nhận không khớp mã dự án.");
+  }
+  // Foreign keys cascade to tasks, comments, memberships and attachment metadata.
+  // S3 objects are retained; deleting cloud files requires a separate decision.
+  await db.project.delete({ where: { id: req.params.id } });
+  res.status(204).send();
+};
