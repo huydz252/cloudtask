@@ -151,5 +151,10 @@ router.get(
   validate(attachmentParams, "params"),
   wrap(attachments.download),
 );
+router.get(
+  "/tasks/:id/attachments/:attachmentId/preview",
+  validate(attachmentParams, "params"),
+  wrap(attachments.preview),
+);
 
 console.log("=== Auto Deploy Test Successful ===");

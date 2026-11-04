@@ -15,7 +15,12 @@ vi.mock("../src/lib/db", () => ({
 }));
 vi.mock("../src/services/storage", () => ({
   s3: { send: vi.fn() },
-  allowedMimeTypes: ["application/pdf"],
+  allowedMimeTypes: [
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+  ],
 }));
 vi.mock("@aws-sdk/s3-request-presigner", () => ({ getSignedUrl: vi.fn() }));
 import { app } from "../src/app";
@@ -58,6 +63,20 @@ beforeEach(() => {
   );
 });
 describe("private S3 upload protocol (mocked S3, no external uploads)", () => {
+  it("accepts PNG/JPEG/WebP images with their original MIME headers", async () => {
+    for (const mimeType of ["image/png", "image/jpeg", "image/webp"]) {
+      const response = await request(app)
+        .post(`${base}/presigned-url`)
+        .auth(token, { type: "bearer" })
+        .send({ fileName: "photo.png", mimeType, fileSize: 1024 });
+      expect(response.status).toBe(201);
+      expect(response.body.headers["Content-Type"]).toBe(mimeType);
+      expect(vi.mocked(getSignedUrl).mock.lastCall?.[1].input).toMatchObject({
+        ContentType: mimeType,
+        ContentLength: 1024,
+      });
+    }
+  });
   it("returns upload headers and saves pending metadata with unique object key", async () => {
     vi.mocked(db.attachment.create).mockResolvedValue(record() as never);
     const r = await request(app)
@@ -205,5 +224,52 @@ describe("private S3 upload protocol (mocked S3, no external uploads)", () => {
     expect(
       vi.mocked(db.attachment.findFirst).mock.calls[1][0]?.where,
     ).toMatchObject({ confirmedAt: { not: null } });
+  });
+  it("signs private inline image previews with the verified MIME type", async () => {
+    vi.mocked(db.attachment.findFirst).mockResolvedValueOnce({
+      ...record(),
+      mimeType: "image/png",
+      confirmedAt: new Date(),
+    } as never);
+    const r = await request(app)
+      .get(`${base}/${id}/preview`)
+      .auth(token, { type: "bearer" });
+    expect(r.status).toBe(200);
+    expect(r.body.expiresIn).toBe(300);
+    expect(r.headers["cache-control"]).toBe("no-store");
+    const command = vi.mocked(getSignedUrl).mock.calls[0][1];
+    expect(command.input).toMatchObject({
+      ResponseContentDisposition: "inline",
+      ResponseContentType: "image/png",
+    });
+  });
+  it("does not preview non-images or unconfirmed attachments", async () => {
+    vi.mocked(db.attachment.findFirst)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ ...record(), confirmedAt: new Date() } as never);
+    expect(
+      (
+        await request(app)
+          .get(`${base}/${id}/preview`)
+          .auth(token, { type: "bearer" })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await request(app)
+          .get(`${base}/${id}/preview`)
+          .auth(token, { type: "bearer" })
+      ).status,
+    ).toBe(415);
+    expect(getSignedUrl).not.toHaveBeenCalled();
+  });
+  it("prevents non-members from obtaining an image URL", async () => {
+    vi.mocked(db.projectMember.findUnique).mockResolvedValueOnce(null);
+    const r = await request(app)
+      .get(`${base}/${id}/preview`)
+      .auth(token, { type: "bearer" });
+    expect(r.status).toBe(404);
+    expect(db.attachment.findFirst).not.toHaveBeenCalled();
+    expect(getSignedUrl).not.toHaveBeenCalled();
   });
 });

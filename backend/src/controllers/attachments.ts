@@ -56,15 +56,13 @@ export const presignUpload: RequestHandler = async (req, res) => {
       uploadExpiresAt: new Date(Date.now() + 300000),
     },
   });
-  res
-    .status(201)
-    .json({
-      uploadUrl,
-      fileUrl,
-      attachmentId: id,
-      headers: { "Content-Type": mimeType, "x-amz-meta-attachment-id": id },
-      expiresIn: 300,
-    });
+  res.status(201).json({
+    uploadUrl,
+    fileUrl,
+    attachmentId: id,
+    headers: { "Content-Type": mimeType, "x-amz-meta-attachment-id": id },
+    expiresIn: 300,
+  });
 };
 export const confirmUpload: RequestHandler = async (req, res) => {
   await requireTask(req.params.id, req.userId);
@@ -128,4 +126,34 @@ export const download: RequestHandler = async (req, res) => {
     { expiresIn: 60 },
   );
   res.json({ url, expiresIn: 60 });
+};
+
+export const preview: RequestHandler = async (req, res) => {
+  await requireTask(req.params.id, req.userId);
+  const attachment = await db.attachment.findFirst({
+    where: {
+      id: req.params.attachmentId,
+      taskId: req.params.id,
+      confirmedAt: { not: null },
+    },
+  });
+  if (!attachment) throw new AppError(404, "Không tìm thấy ảnh.");
+  if (
+    !["image/jpeg", "image/png", "image/webp"].includes(attachment.mimeType)
+  ) {
+    throw new AppError(415, "Chỉ hỗ trợ xem trước ảnh JPEG, PNG và WebP.");
+  }
+  const url = await getSignedUrl(
+    s3,
+    new GetObjectCommand({
+      Bucket: bucket(),
+      Key: attachment.objectKey,
+      ResponseContentDisposition: "inline",
+      ResponseContentType: attachment.mimeType,
+      ResponseCacheControl: "private, max-age=300",
+    }),
+    { expiresIn: 300 },
+  );
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ url, expiresIn: 300 });
 };

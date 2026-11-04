@@ -1,14 +1,6 @@
 import { useState, type FormEvent } from "react";
-import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Download,
-  MessageSquare,
-  Paperclip,
-  Send,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { MessageSquare, Send, Trash2 } from "lucide-react";
 import { api, errorMessage } from "../api";
 import {
   priorities,
@@ -20,6 +12,7 @@ import {
   type Status,
 } from "../types";
 import { Avatar, ErrorBox, Modal, Spinner } from "./ui";
+import TaskAttachments from "./TaskAttachments";
 
 export default function TaskDrawer({
   taskId,
@@ -40,8 +33,7 @@ export default function TaskDrawer({
     [notice, setNotice] = useState("");
   const [comment, setComment] = useState(""),
     [commentBusy, setCommentBusy] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null),
-    [uploadError, setUploadError] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false),
     [deleteBusy, setDeleteBusy] = useState(false);
   const task = useQuery({
@@ -109,71 +101,6 @@ export default function TaskDrawer({
       setCommentBusy(false);
     }
   }
-  async function upload(file?: File) {
-    if (!file) return;
-    if (file.size > 10485760 || file.size === 0) {
-      setUploadError("Tệp cần có dung lượng từ 1 byte đến 10 MB.");
-      return;
-    }
-    setUploadError("");
-    setUploadProgress(0);
-    try {
-      // Windows browsers sometimes report ZIP/CSV with non-standard MIME types.
-      const mimeByExtension: Record<string, string> = {
-        png: "image/png",
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        webp: "image/webp",
-        pdf: "application/pdf",
-        txt: "text/plain",
-        csv: "text/csv",
-        zip: "application/zip",
-        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      };
-      const extension = file.name.toLowerCase().split(".").pop() || "";
-      const mimeType =
-        mimeByExtension[extension] || file.type || "application/octet-stream";
-      const { data } = await api.post(
-        `/tasks/${taskId}/attachments/presigned-url`,
-        { fileName: file.name, mimeType, fileSize: file.size },
-      );
-      await axios.put(data.uploadUrl, file, {
-        headers: data.headers,
-        withCredentials: false,
-        onUploadProgress: (e) =>
-          setUploadProgress(
-            Math.min(99, Math.round((e.loaded / (e.total || file.size)) * 100)),
-          ),
-      });
-      await api.post(
-        `/tasks/${taskId}/attachments/${data.attachmentId}/confirm`,
-        {},
-      );
-      setUploadProgress(100);
-      invalidate();
-      setNotice("Đã tải tệp lên và xác minh.");
-    } catch (err) {
-      setUploadError(errorMessage(err));
-    } finally {
-      setUploadProgress(null);
-    }
-  }
-  async function download(id: string) {
-    setUploadError("");
-    try {
-      const { data } = await api.get(
-        `/tasks/${taskId}/attachments/${id}/download`,
-      );
-      const a = document.createElement("a");
-      a.href = data.url;
-      a.rel = "noopener noreferrer";
-      a.target = "_blank";
-      a.click();
-    } catch (err) {
-      setUploadError(errorMessage(err));
-    }
-  }
   async function remove() {
     setDeleteBusy(true);
     setError("");
@@ -197,7 +124,7 @@ export default function TaskDrawer({
     <Modal
       drawer
       title={taskId ? "Chi tiết công việc" : "Tạo công việc mới"}
-      onClose={onClose}
+      onClose={uploading ? () => {} : onClose}
     >
       {taskId && task.isLoading ? (
         <Spinner />
@@ -289,10 +216,7 @@ export default function TaskDrawer({
                     </button>
                   )}
               </div>
-              <button
-                disabled={busy || uploadProgress !== null}
-                className="btn-primary"
-              >
+              <button disabled={busy || uploading} className="btn-primary">
                 {busy ? "Đang lưu…" : taskId ? "Lưu thay đổi" : "Tạo công việc"}
               </button>
             </div>
@@ -315,7 +239,7 @@ export default function TaskDrawer({
                   Giữ lại
                 </button>
                 <button
-                  disabled={deleteBusy || uploadProgress !== null}
+                  disabled={deleteBusy || uploading}
                   className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
                   onClick={remove}
                 >
@@ -326,79 +250,12 @@ export default function TaskDrawer({
           )}
           {taskId && (
             <>
-              <section className="mt-8 border-t border-slate-200 pt-6">
-                <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-                  <Paperclip size={17} /> Tệp đính kèm{" "}
-                  <span className="text-slate-400">
-                    {t?.attachments?.length || 0}
-                  </span>
-                </h3>
-                <div className="space-y-2">
-                  {t?.attachments?.map((a) => (
-                    <button
-                      key={a.id}
-                      className="flex w-full items-center gap-3 rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50"
-                      onClick={() => download(a.id)}
-                    >
-                      <Paperclip
-                        size={17}
-                        className="shrink-0 text-slate-400"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-medium">
-                          {a.fileName}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {(a.fileSize / 1024).toFixed(1)} KB
-                        </span>
-                      </span>
-                      <Download size={15} className="text-brand" />
-                    </button>
-                  ))}
-                </div>
-                <label
-                  className={`mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 px-4 py-5 text-xs text-slate-500 hover:border-brand ${uploadProgress !== null ? "pointer-events-none opacity-50" : ""}`}
-                >
-                  <Upload size={16} /> Tải tệp lên · tối đa 10 MB
-                  <input
-                    className="hidden"
-                    type="file"
-                    accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.csv,.zip,.docx,.xlsx"
-                    disabled={uploadProgress !== null}
-                    onChange={(e) => {
-                      upload(e.target.files?.[0]);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-                {uploadProgress !== null && (
-                  <div className="mt-3">
-                    <div
-                      role="progressbar"
-                      aria-valuenow={uploadProgress}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-label="Tiến độ upload"
-                      className="h-2 rounded-full bg-slate-100"
-                    >
-                      <div
-                        style={{ width: `${uploadProgress}%` }}
-                        className="h-2 rounded-full bg-brand"
-                      />
-                    </div>
-                    <p className="mt-2 text-xs text-slate-400">
-                      {uploadProgress < 99
-                        ? `Đang tải ${uploadProgress}%`
-                        : "Đang xác minh tệp…"}
-                    </p>
-                  </div>
-                )}
-                {uploadError && (
-                  <div className="mt-3">
-                    <ErrorBox message={uploadError} />
-                  </div>
-                )}
-              </section>
+              <TaskAttachments
+                taskId={taskId}
+                projectId={project.id}
+                attachments={t?.attachments || []}
+                onBusyChange={setUploading}
+              />
               <section className="mt-8 border-t border-slate-200 pt-6">
                 <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold">
                   <MessageSquare size={17} /> Bình luận{" "}
