@@ -30,6 +30,12 @@ const token = () =>
   });
 beforeEach(() => vi.clearAllMocks());
 describe("validation and security boundaries", () => {
+  it("keeps PATCH fields absent instead of applying create defaults", () => {
+    expect(taskPatchSchema.parse({ title: "Đổi tiêu đề" })).toEqual({
+      title: "Đổi tiêu đề",
+    });
+    expect(taskPatchSchema.safeParse({}).success).toBe(false);
+  });
   it("rejects unknown mutation fields and empty task updates", () => {
     expect(taskPatchSchema.safeParse({}).success).toBe(false);
     expect(taskPatchSchema.safeParse({ creatorId: userId }).success).toBe(

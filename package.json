@@ -21,7 +21,8 @@
   "overrides": {
     "effect": "^3.20.0",
     "deepmerge-ts": "^8.0.0",
-    "tinypool": "^2.2.0"
+    "tinypool": "^2.2.0",
+    "vite": "6.4.5"
   },
   "engines": {
     "node": ">=20.19.0"

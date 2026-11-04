@@ -43,6 +43,10 @@ export const taskSchema = z
   })
   .strict();
 export const taskPatchSchema = taskSchema
+  .extend({
+    status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+  })
   .partial()
   .refine((v) => Object.keys(v).length > 0, "Cần ít nhất một trường.");
 export const taskQuerySchema = z
