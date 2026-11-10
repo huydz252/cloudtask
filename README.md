@@ -1,6 +1,6 @@
 # CloudTask
 
-Ứng dụng quản lý dự án và công việc theo yêu cầu trong `promt_context.docx`. Backend Express/TypeScript, Prisma/PostgreSQL, frontend React/Vite/Tailwind, TanStack Query, Axios và Lucide. Có Docker riêng cho API và giao diện, migration SQL, seed và kiểm thử.
+Ứng dụng quản lý dự án và công việc. Backend Express/TypeScript, Prisma/PostgreSQL, frontend React/Vite/Tailwind, TanStack Query, Axios và Lucide. Có Docker riêng cho API và giao diện, migration SQL, seed và kiểm thử.
 
 ## Chạy ngay bằng Docker
 
